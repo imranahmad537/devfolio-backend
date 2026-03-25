@@ -15,9 +15,21 @@ exports.download = async (req, res, next) => {
     try {
         const doc = await Resume.findOne().sort({ uploadedAt: -1 });
         if (!doc) return res.status(404).json({ success: false, message: 'No resume found' });
-        const filePath = path.join(__dirname, '..', doc.filePath);
-        if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, message: 'File not found on disk' });
-        res.download(filePath, doc.fileName || 'resume.pdf');
+
+        let buffer;
+        if (doc.base64Data) {
+            buffer = Buffer.from(doc.base64Data, 'base64');
+        } else if (doc.filePath) {
+            // Keep backwards compatibility for local old files if any
+            const fullPath = path.join(__dirname, '..', doc.filePath);
+            if (fs.existsSync(fullPath)) buffer = fs.readFileSync(fullPath);
+        }
+
+        if (!buffer) return res.status(404).json({ success: false, message: 'File not found' });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${doc.fileName || 'resume.pdf'}"`);
+        res.send(buffer);
     } catch (err) { next(err); }
 };
 
@@ -26,7 +38,7 @@ exports.upload = async (req, res, next) => {
     try {
         if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
         const doc = await Resume.create({
-            filePath: `uploads/resume/${req.file.filename}`,
+            base64Data: req.file.buffer.toString('base64'),
             fileName: req.file.originalname,
         });
         res.status(201).json({ success: true, data: doc });

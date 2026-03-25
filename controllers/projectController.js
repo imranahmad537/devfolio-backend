@@ -16,14 +16,20 @@ exports.getOne = async (req, res, next) => {
 exports.create = async (req, res, next) => {
     try {
         const data = { ...req.body };
-        if (req.file) data.bgimg = `/uploads/images/${req.file.filename}`;
+        if (req.file) {
+            const base64Str = req.file.buffer.toString('base64');
+            data.bgimg = `data:${req.file.mimetype};base64,${base64Str}`;
+        }
         res.status(201).json({ success: true, data: await Project.create(data) });
     } catch (err) { next(err); }
 };
 exports.update = async (req, res, next) => {
     try {
         const data = { ...req.body };
-        if (req.file) data.bgimg = `/uploads/images/${req.file.filename}`;
+        if (req.file) {
+            const base64Str = req.file.buffer.toString('base64');
+            data.bgimg = `data:${req.file.mimetype};base64,${base64Str}`;
+        }
         const item = await Project.findByIdAndUpdate(req.params.id, data, { new: true });
         if (!item) return res.status(404).json({ success: false, message: 'Not found' });
         res.json({ success: true, data: item });

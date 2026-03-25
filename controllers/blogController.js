@@ -15,9 +15,11 @@ exports.getOne = async (req, res, next) => {
 };
 exports.create = async (req, res, next) => {
     try {
-        const data = { ...req.body };
-        if (data.date === '') delete data.date;
-        if (req.file) data.imageUrl = `/uploads/images/${req.file.filename}`;
+        const data = { ...req.body, author: req.user.id };
+        if (req.file) {
+            const base64Str = req.file.buffer.toString('base64');
+            data.imageUrl = `data:${req.file.mimetype};base64,${base64Str}`;
+        }
         res.status(201).json({ success: true, data: await Blog.create(data) });
     } catch (err) { next(err); }
 };
@@ -25,11 +27,14 @@ exports.update = async (req, res, next) => {
     try {
         const data = { ...req.body };
         if (data.date === '') delete data.date;
-        if (req.file) data.imageUrl = `/uploads/images/${req.file.filename}`;
+        if (req.file) {
+            const base64Str = req.file.buffer.toString('base64');
+            data.imageUrl = `data:${req.file.mimetype};base64,${base64Str}`;
+        }
 
-        // Ensure we don't accidentally overwrite imageUrl with an empty string if no new file is provided but a string is sent
+        // Handle removal of image if imageUrl is empty string and no new file was uploaded
         if (!req.file && data.imageUrl === '') {
-            delete data.imageUrl;
+            data.imageUrl = '';
         }
 
         const item = await Blog.findByIdAndUpdate(req.params.id, data, { new: true });

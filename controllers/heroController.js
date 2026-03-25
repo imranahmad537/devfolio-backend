@@ -12,7 +12,7 @@ exports.getHero = async (req, res, next) => {
 // PUT /api/hero  (auth)
 exports.updateHero = async (req, res, next) => {
     try {
-        const allowed = ['name', 'title', 'headline', 'subheadline', 'profileImage', 'ctaPrimary', 'ctaSecondary', 'logos'];
+        const allowed = ['name', 'title', 'headline', 'subheadline', 'profileImage', 'ctaPrimary', 'ctaSecondary', 'logos', 'socialLinks'];
         const update = {};
         allowed.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
 
@@ -21,8 +21,16 @@ exports.updateHero = async (req, res, next) => {
             try { update.logos = JSON.parse(update.logos); } catch (e) { }
         }
 
-        // Handle profile image uploaded via multipart
-        if (req.file) update.profileImage = `/uploads/images/${req.file.filename}`;
+        // Parse socialLinks if it's sent as a stringified JSON array
+        if (typeof update.socialLinks === 'string') {
+            try { update.socialLinks = JSON.parse(update.socialLinks); } catch (e) { }
+        }
+
+        // Handle profile image uploaded via multipart, convert to base64 Data URI
+        if (req.file) {
+            const base64Str = req.file.buffer.toString('base64');
+            update.profileImage = `data:${req.file.mimetype};base64,${base64Str}`;
+        }
 
         let hero = await HeroContent.findOneAndUpdate({}, { $set: update }, { new: true, upsert: true });
         res.json({ success: true, data: hero });
