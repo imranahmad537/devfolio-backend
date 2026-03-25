@@ -65,6 +65,7 @@ app.use('/api/v1/contact', require('./routes/contactRoutes'));
 app.use('/api/v1/resume', require('./routes/resumeRoutes'));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
+app.get('/', (req, res) => res.json({ success: true, message: 'API is running successfully' }));
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
